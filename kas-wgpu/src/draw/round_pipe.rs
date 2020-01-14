@@ -23,6 +23,7 @@ struct Vertex(Vec2, Rgb, Vec2, Vec2);
 pub struct RoundPipe {
     bind_group: wgpu::BindGroup,
     scale_buf: wgpu::Buffer,
+    light_norm_buf: wgpu::Buffer,
     render_pipeline: wgpu::RenderPipeline,
     passes: Vec<Vec<Vertex>>,
 }
@@ -157,9 +158,24 @@ impl RoundPipe {
         RoundPipe {
             bind_group,
             scale_buf,
+            light_norm_buf,
             render_pipeline,
             passes: vec![],
         }
+    }
+
+    pub fn update_light(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        light_norm: [f32; 3],
+    ) {
+        let light_norm_buf = device
+            .create_buffer_mapped(light_norm.len(), wgpu::BufferUsage::COPY_SRC)
+            .fill_from_slice(&light_norm);
+        let byte_len = size_of::<[f32; 3]>() as u64;
+
+        encoder.copy_buffer_to_buffer(&light_norm_buf, 0, &self.light_norm_buf, 0, byte_len);
     }
 
     pub fn resize(

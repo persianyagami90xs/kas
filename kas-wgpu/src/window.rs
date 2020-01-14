@@ -103,6 +103,16 @@ impl<TW: theme::Window<DrawPipe> + 'static> Window<TW> {
         self.window.request_redraw();
     }
 
+    pub(crate) fn mouse_delta<T: theme::Theme<DrawPipe, Window = TW>>(
+        &mut self,
+        shared: &mut SharedState<T>,
+        delta: (f64, f64),
+    ) {
+        let buf = self.tk_window.draw_pipe.mouse_delta(&shared.device, delta);
+        shared.queue.submit(&[buf]);
+        self.window.request_redraw();
+    }
+
     /// Handle an event
     ///
     /// Return true to remove the window

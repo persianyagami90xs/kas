@@ -48,8 +48,18 @@ impl<T: theme::Theme<DrawPipe>> Loop<T> {
                 return;
             },
 
-            DeviceEvent { .. } => return, // windows handle local input; we do not handle global input
-            UserEvent(_) => return,       // we have no handler for user events
+            DeviceEvent { event, .. } => {
+                // we do not handle global input except for mouse effects
+                return match event {
+                    winit::event::DeviceEvent::MouseMotion { delta } => {
+                        for window in &mut self.windows {
+                            window.mouse_delta(&mut self.shared, delta);
+                        }
+                    }
+                    _ => (),
+                };
+            }
+            UserEvent(_) => return, // we have no handler for user events
 
             NewEvents(cause) => {
                 match cause {

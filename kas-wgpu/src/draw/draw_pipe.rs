@@ -51,6 +51,7 @@ pub trait DrawText {
 
 /// Manager of draw pipes and implementor of [`Draw`]
 pub struct DrawPipe {
+    light_norm: [f32; 3],
     clip_regions: Vec<Rect>,
     round_pipe: RoundPipe,
     square_pipe: SquarePipe,
@@ -73,7 +74,7 @@ impl DrawPipe {
         let a = (dir.0.sin(), dir.0.cos());
         // We normalise intensity:
         let f = a.0 / a.1;
-        let norm = [dir.1.sin() * f, -dir.1.cos() * f, 1.0];
+        let light_norm = [dir.1.sin() * f, -dir.1.cos() * f, 1.0];
 
         let glyph_brush =
             GlyphBrushBuilder::using_fonts(theme.get_fonts()).build(device, tex_format);
@@ -83,11 +84,27 @@ impl DrawPipe {
             size,
         };
         DrawPipe {
+            light_norm,
             clip_regions: vec![region],
-            square_pipe: SquarePipe::new(device, size, norm),
-            round_pipe: RoundPipe::new(device, size, norm),
+            square_pipe: SquarePipe::new(device, size, light_norm),
+            round_pipe: RoundPipe::new(device, size, light_norm),
             glyph_brush,
         }
+    }
+
+    pub(crate) fn mouse_delta(
+        &mut self,
+        device: &wgpu::Device,
+        delta: (f64, f64),
+    ) -> wgpu::CommandBuffer {
+        let mut encoder =
+            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
+        self.light_norm[0] += delta.0 as f32 * 0.01;
+        self.light_norm[1] += delta.1 as f32 * 0.01;
+        println!("light norm: {:?}", self.light_norm);
+        self.round_pipe
+            .update_light(device, &mut encoder, self.light_norm);
+        encoder.finish()
     }
 
     /// Process window resize
