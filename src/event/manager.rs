@@ -603,6 +603,7 @@ impl Manager {
             _ => Response::None,
         };
 
+        trace!("Event processing response: {:?}", response);
         match response {
             Response::None | Response::Identify(_) => (),
             Response::Unhandled(_) => {

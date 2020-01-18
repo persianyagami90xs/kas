@@ -53,6 +53,8 @@ impl<T: theme::Theme<DrawPipe>> Loop<T> {
         control_flow: &mut ControlFlow,
     ) {
         use Event::*;
+        
+        trace!("Received event: {:?}", event);
 
         // In most cases actions.len() is 0 or 1.
         let mut actions = SmallVec::<[_; 2]>::new();
@@ -151,6 +153,7 @@ impl<T: theme::Theme<DrawPipe>> Loop<T> {
 
             MainEventsCleared | RedrawEventsCleared | LoopDestroyed | Suspended | Resumed => return,
         };
+        println!("1a");
 
         // Create and init() any new windows.
         while let Some(pending) = self.shared.pending.pop() {
@@ -185,6 +188,7 @@ impl<T: theme::Theme<DrawPipe>> Loop<T> {
                 }
             }
         }
+        println!("1b");
 
         if have_new_resumes {
             self.resumes.sort_by_key(|item| item.0);
@@ -195,12 +199,17 @@ impl<T: theme::Theme<DrawPipe>> Loop<T> {
                 *control_flow = ControlFlow::Wait;
             }
         }
+        println!("1c: actions: {:?}", actions);
 
         for (id, action) in actions.pop() {
             match action {
                 TkAction::None => (),
                 TkAction::Redraw => {
-                    self.windows.get(&id).map(|w| w.window.request_redraw());
+                    if let Some(w) = self.windows.get(&id) {
+                        println!("2a");
+                        w.window.request_redraw();
+                        println!("2b");
+                    }
                 }
                 TkAction::Reconfigure => {
                     self.windows.get_mut(&id).map(|w| w.reconfigure());
@@ -224,5 +233,8 @@ impl<T: theme::Theme<DrawPipe>> Loop<T> {
                 }
             }
         }
+        println!("1d");
+        
+        trace!("Done; control_flow = {:?}", *control_flow);
     }
 }
