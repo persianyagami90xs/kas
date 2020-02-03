@@ -53,6 +53,9 @@ pub trait DrawText {
 /// Manager of draw pipes and implementor of [`Draw`]
 pub struct DrawPipe {
     clip_regions: Vec<Rect>,
+    tex_format: wgpu::TextureFormat,
+    sample_count: u32,
+    framebuffer: wgpu::TextureView,
     round_pipe: RoundPipe,
     square_pipe: SquarePipe,
     glyph_brush: GlyphBrush<'static, ()>,
@@ -82,17 +85,53 @@ impl DrawPipe {
             pos: Coord::ZERO,
             size,
         };
+
+        let sample_count = shared.multisample;
+        let framebuffer =
+            DrawPipe::create_framebuffer(&shared.device, tex_format, size, sample_count);
+
         DrawPipe {
             clip_regions: vec![region],
+            tex_format,
+            sample_count,
+            framebuffer,
             square_pipe: SquarePipe::new(shared, size, norm),
             round_pipe: RoundPipe::new(shared, size, norm),
             glyph_brush,
         }
     }
 
+    fn create_framebuffer(
+        device: &wgpu::Device,
+        tex_format: wgpu::TextureFormat,
+        size: Size,
+        sample_count: u32,
+    ) -> wgpu::TextureView {
+        let multisampled_texture_extent = wgpu::Extent3d {
+            width: size.0,
+            height: size.1,
+            depth: 1,
+        };
+        let multisampled_frame_descriptor = &wgpu::TextureDescriptor {
+            size: multisampled_texture_extent,
+            array_layer_count: 1,
+            mip_level_count: 1,
+            sample_count: sample_count,
+            dimension: wgpu::TextureDimension::D2,
+            format: tex_format,
+            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+        };
+
+        device
+            .create_texture(multisampled_frame_descriptor)
+            .create_default_view()
+    }
+
     /// Process window resize
     pub fn resize(&mut self, device: &wgpu::Device, size: Size) -> wgpu::CommandBuffer {
         self.clip_regions[0].size = size;
+        self.framebuffer =
+            DrawPipe::create_framebuffer(device, self.tex_format, size, self.sample_count);
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { todo: 0 });
         self.square_pipe.resize(device, &mut encoder, size);
@@ -109,18 +148,29 @@ impl DrawPipe {
     ) -> wgpu::CommandBuffer {
         let desc = wgpu::CommandEncoderDescriptor { todo: 0 };
         let mut encoder = device.create_command_encoder(&desc);
-        let mut load_op = wgpu::LoadOp::Clear;
+
+        let mut rpass_color_attachments = [if self.sample_count == 1 {
+            wgpu::RenderPassColorAttachmentDescriptor {
+                attachment: frame_view,
+                resolve_target: None,
+                load_op: wgpu::LoadOp::Clear,
+                store_op: wgpu::StoreOp::Store,
+                clear_color,
+            }
+        } else {
+            wgpu::RenderPassColorAttachmentDescriptor {
+                attachment: &self.framebuffer,
+                resolve_target: Some(frame_view),
+                load_op: wgpu::LoadOp::Clear,
+                store_op: wgpu::StoreOp::Store,
+                clear_color,
+            }
+        }];
 
         // We use a separate render pass for each clipped region.
         for (pass, region) in self.clip_regions.iter().enumerate() {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: frame_view,
-                    resolve_target: None,
-                    load_op: load_op,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color,
-                }],
+                color_attachments: &rpass_color_attachments,
                 depth_stencil_attachment: None,
             });
             rpass.set_scissor_rect(
@@ -134,7 +184,7 @@ impl DrawPipe {
             self.round_pipe.render(device, pass, &mut rpass);
             drop(rpass);
 
-            load_op = wgpu::LoadOp::Load;
+            rpass_color_attachments[0].load_op = wgpu::LoadOp::Load;
         }
 
         // Fonts use their own render pass(es).

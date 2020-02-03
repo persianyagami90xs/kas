@@ -15,6 +15,8 @@ pub struct Options {
     pub power_preference: PowerPreference,
     /// Adapter backend. Default value: PRIMARY (Vulkan/Metal/DX12).
     pub backends: BackendBit,
+    /// Multi-sampling. Default value: 1
+    pub multisample: u32,
 }
 
 impl Options {
@@ -23,6 +25,7 @@ impl Options {
         Options {
             power_preference: PowerPreference::LowPower,
             backends: BackendBit::PRIMARY,
+            multisample: 1,
         }
     }
 
@@ -49,6 +52,11 @@ impl Options {
     /// -   `DX12`
     /// -   `PRIMARY`: any of Vulkan, Metal or DX12
     /// -   `SECONDARY`: any of GL or DX11
+    ///
+    /// ### Multisampling
+    ///
+    /// Using 2 or more samples-per-pixel smooths graphics with some performance
+    /// cost. The `KAS_MULTISAMPLE` variable supports values of 1, 2, 4, 8, 16.
     pub fn from_env() -> Self {
         let mut options = Options::new();
 
@@ -81,6 +89,20 @@ impl Options {
                 other => {
                     warn!("Unexpected environment value: KAS_BACKENDS={}", other);
                     options.backends
+                }
+            }
+        }
+
+        if let Ok(v) = var("KAS_MULTISAMPLE") {
+            options.multisample = match v.as_str() {
+                "1" => 1,
+                "2" => 2,
+                "4" => 4,
+                "8" => 8,
+                "16" => 16,
+                other => {
+                    warn!("Unexpected environment value: KAS_MULTISAMPLE={}", other);
+                    options.multisample
                 }
             }
         }
