@@ -5,7 +5,7 @@
 
 //! Shared state
 
-use log::{info, warn};
+use log::info;
 use std::fmt;
 use std::num::NonZeroU32;
 
@@ -13,9 +13,6 @@ use crate::draw::{CustomPipe, CustomPipeBuilder, DrawPipe, DrawWindow, ShaderMan
 use crate::{Error, Options, WindowId};
 use kas::event::UpdateHandle;
 use kas_theme::Theme;
-
-#[cfg(feature = "clipboard")]
-use clipboard::{ClipboardContext, ClipboardProvider};
 
 struct NoAdapterError;
 
@@ -35,8 +32,6 @@ impl std::error::Error for NoAdapterError {}
 
 /// State shared between windows
 pub struct SharedState<C: CustomPipe, T> {
-    #[cfg(feature = "clipboard")]
-    clipboard: Option<ClipboardContext>,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub shaders: ShaderManager,
@@ -60,15 +55,6 @@ where
         options: Options,
         scale_factor: f64,
     ) -> Result<Self, Error> {
-        #[cfg(feature = "clipboard")]
-        let clipboard = match ClipboardContext::new() {
-            Ok(cb) => Some(cb),
-            Err(e) => {
-                warn!("Unable to open clipboard: {:?}", e);
-                None
-            }
-        };
-
         let adapter_options = options.adapter_options();
 
         let adapter = match wgpu::Adapter::request(&adapter_options) {
@@ -90,8 +76,6 @@ where
         theme.init(&mut draw);
 
         Ok(SharedState {
-            #[cfg(feature = "clipboard")]
-            clipboard,
             device,
             queue,
             shaders,
@@ -118,37 +102,6 @@ where
             .draw
             .render(window, &mut self.device, frame_view, clear_color);
         self.queue.submit(&[buf]);
-    }
-
-    #[cfg(not(feature = "clipboard"))]
-    #[inline]
-    pub fn get_clipboard(&mut self) -> Option<kas::CowString> {
-        None
-    }
-
-    #[cfg(feature = "clipboard")]
-    pub fn get_clipboard(&mut self) -> Option<kas::CowString> {
-        self.clipboard
-            .as_mut()
-            .and_then(|cb| match cb.get_contents() {
-                Ok(c) => Some(c.into()),
-                Err(e) => {
-                    warn!("Failed to get clipboard contents: {:?}", e);
-                    None
-                }
-            })
-    }
-
-    #[cfg(not(feature = "clipboard"))]
-    #[inline]
-    pub fn set_clipboard<'c>(&mut self, content: kas::CowStringL<'c>) {}
-
-    #[cfg(feature = "clipboard")]
-    pub fn set_clipboard<'c>(&mut self, content: kas::CowStringL<'c>) {
-        self.clipboard.as_mut().map(|cb| {
-            cb.set_contents(content.into())
-                .unwrap_or_else(|e| warn!("Failed to set clipboard contents: {:?}", e))
-        });
     }
 }
 

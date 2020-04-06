@@ -11,6 +11,7 @@ repository = "https://github.com/kas-gui/kas"
 
 [features]
 default = ["clipboard", "stack_dst"]
+clipboard = ["window_clipboard"]
 
 # Use Generic Associated Types (experimental)
 gat = ["kas-theme/gat"]
@@ -28,9 +29,9 @@ wgpu = "0.4.0"
 wgpu_glyph = "0.6.0"
 winit = "0.22.0"
 
-[dependencies.clipboard]
+[dependencies.window_clipboard]
 # Provides clipboard support
-version = "0.5"
+version = "0.1.1"
 optional = true
 
 [dev-dependencies]
