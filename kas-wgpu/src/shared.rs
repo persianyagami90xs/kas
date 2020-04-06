@@ -6,6 +6,7 @@
 //! Shared state
 
 use log::{info, warn};
+use std::fmt;
 use std::num::NonZeroU32;
 
 use crate::draw::{CustomPipe, CustomPipeBuilder, DrawPipe, DrawWindow, ShaderManager};
@@ -15,6 +16,22 @@ use kas_theme::Theme;
 
 #[cfg(feature = "clipboard")]
 use clipboard::{ClipboardContext, ClipboardProvider};
+
+struct NoAdapterError;
+
+impl fmt::Debug for NoAdapterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "NoAdapterError {{ }}")
+    }
+}
+
+impl fmt::Display for NoAdapterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "no suitable graphics adapter found")
+    }
+}
+
+impl std::error::Error for NoAdapterError {}
 
 /// State shared between windows
 pub struct SharedState<C: CustomPipe, T> {
@@ -56,7 +73,7 @@ where
 
         let adapter = match wgpu::Adapter::request(&adapter_options) {
             Some(a) => a,
-            None => return Err(Error::NoAdapter),
+            None => return Err(Box::new(NoAdapterError)),
         };
         info!("Using graphics adapter: {}", adapter.get_info().name);
 

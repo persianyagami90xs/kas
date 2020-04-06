@@ -14,11 +14,11 @@ use kas::layout::SolveCache;
 use kas::{ThemeAction, ThemeApi, TkAction, WindowId};
 use kas_theme::Theme;
 use winit::dpi::PhysicalSize;
-use winit::error::OsError;
 use winit::event::WindowEvent;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::WindowBuilder;
 
+use super::Error;
 use crate::draw::{CustomPipe, CustomWindow, DrawPipe, DrawWindow, TEX_FORMAT};
 use crate::shared::{PendingAction, SharedState};
 use crate::ProxyAction;
@@ -50,7 +50,7 @@ where
         elwt: &EventLoopWindowTarget<ProxyAction>,
         window_id: WindowId,
         mut widget: Box<dyn kas::Window>,
-    ) -> Result<Self, OsError>
+    ) -> Result<Self, Error>
     where
         C: CustomPipe<Window = CW>,
         T: Theme<DrawPipe<C>, Window = TW>,

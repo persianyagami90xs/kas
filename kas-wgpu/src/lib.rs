@@ -20,12 +20,11 @@ pub mod options;
 mod shared;
 mod window;
 
-use std::{error, fmt};
+use std::error;
 
 use kas::event::UpdateHandle;
 use kas::WindowId;
 use kas_theme::Theme;
-use winit::error::OsError;
 use winit::event_loop::{EventLoop, EventLoopProxy};
 
 use crate::draw::{CustomPipe, CustomPipeBuilder, DrawPipe, DrawWindow};
@@ -39,48 +38,8 @@ pub use kas_theme as theme;
 pub use wgpu;
 pub use wgpu_glyph as glyph;
 
-/// Possible failures from constructing a [`Toolkit`]
-///
-/// Some variants are undocumented. Users should not match these variants since
-/// they are not considered part of the public API.
-#[non_exhaustive]
-#[derive(Debug)]
-pub enum Error {
-    /// No suitable graphics adapter found
-    ///
-    /// This can be a driver/configuration issue or hardware limitation. Note
-    /// that for now, `wgpu` only supports DX11, DX12, Vulkan and Metal.
-    NoAdapter,
-    #[doc(hidden)]
-    /// Shaders failed to compile (likely internal issue)
-    ShaderCompilation(shaderc::Error),
-    /// OS error during window creation
-    Window(OsError),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            Error::NoAdapter => write!(f, "no suitable graphics adapter found"),
-            Error::ShaderCompilation(e) => write!(f, "shader compilation failed: {}", e),
-            Error::Window(e) => write!(f, "window creation error: {}", e),
-        }
-    }
-}
-
-impl error::Error for Error {}
-
-impl From<OsError> for Error {
-    fn from(ose: OsError) -> Self {
-        Error::Window(ose)
-    }
-}
-
-impl From<shaderc::Error> for Error {
-    fn from(e: shaderc::Error) -> Self {
-        Error::ShaderCompilation(e)
-    }
-}
+/// Error type
+pub type Error = Box<dyn error::Error>;
 
 /// Builds a toolkit over a `winit::event_loop::EventLoop`.
 pub struct Toolkit<C: CustomPipe, T: Theme<DrawPipe<C>>>
