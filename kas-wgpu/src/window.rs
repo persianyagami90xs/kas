@@ -131,7 +131,7 @@ where
     {
         debug!("Window::reconfigure");
 
-        let mut tkw = TkWindow::new(&self.window, &self.clipboard, shared);
+        let mut tkw = TkWindow::new(&self.window, &mut self.clipboard, shared);
         self.mgr.configure(&mut tkw, &mut *self.widget);
 
         self.apply_size();
@@ -174,7 +174,7 @@ where
                 self.do_resize(shared, *new_inner_size);
             }
             event @ _ => {
-                let mut tkw = TkWindow::new(&self.window, &self.clipboard, shared);
+                let mut tkw = TkWindow::new(&self.window, &mut self.clipboard, shared);
                 self.mgr
                     .manager(&mut tkw)
                     .handle_winit(&mut *self.widget, event);
@@ -188,7 +188,7 @@ where
         C: CustomPipe<Window = CW>,
         T: Theme<DrawPipe<C>, Window = TW>,
     {
-        let mut tkw = TkWindow::new(&self.window, &self.clipboard, shared);
+        let mut tkw = TkWindow::new(&self.window, &mut self.clipboard, shared);
         let action = self.mgr.manager(&mut tkw).finish(&mut *self.widget);
 
         match action {
@@ -210,7 +210,7 @@ where
         C: CustomPipe<Window = CW>,
         T: Theme<DrawPipe<C>, Window = TW>,
     {
-        let mut tkw = TkWindow::new(&self.window, &self.clipboard, shared);
+        let mut tkw = TkWindow::new(&self.window, &mut self.clipboard, shared);
         let mut mgr = self.mgr.manager(&mut tkw);
         self.widget.handle_closure(&mut mgr);
         mgr.finish(&mut *self.widget)
@@ -221,7 +221,7 @@ where
         C: CustomPipe<Window = CW>,
         T: Theme<DrawPipe<C>, Window = TW>,
     {
-        let mut tkw = TkWindow::new(&self.window, &self.clipboard, shared);
+        let mut tkw = TkWindow::new(&self.window, &mut self.clipboard, shared);
         let mut mgr = self.mgr.manager(&mut tkw);
         mgr.update_timer(&mut *self.widget);
         self.mgr.next_resume()
@@ -236,7 +236,7 @@ where
         C: CustomPipe<Window = CW>,
         T: Theme<DrawPipe<C>, Window = TW>,
     {
-        let mut tkw = TkWindow::new(&self.window, &self.clipboard, shared);
+        let mut tkw = TkWindow::new(&self.window, &mut self.clipboard, shared);
         let mut mgr = self.mgr.manager(&mut tkw);
         mgr.update_handle(&mut *self.widget, handle, payload);
     }
@@ -252,7 +252,7 @@ where
     {
         let window = &mut *self.widget;
         let mut size_handle = unsafe { self.theme_window.size_handle(&mut self.draw) };
-        let mut tkw = TkWindow::new(&self.window, &self.clipboard, shared);
+        let mut tkw = TkWindow::new(&self.window, &mut self.clipboard, shared);
         let mut mgr = self.mgr.manager(&mut tkw);
         kas::Window::add_popup(window, &mut size_handle, &mut mgr, id, popup);
     }
@@ -269,7 +269,7 @@ where
         if id == self.window_id {
             self.mgr.send_action(TkAction::Close);
         } else {
-            let mut tkw = TkWindow::new(&self.window, &self.clipboard, shared);
+            let mut tkw = TkWindow::new(&self.window, &mut self.clipboard, shared);
             let mut mgr = self.mgr.manager(&mut tkw);
             self.widget.remove_popup(&mut mgr, id);
         }
@@ -365,14 +365,14 @@ fn to_wgpu_color(c: kas::draw::Colour) -> wgpu::Color {
 
 struct TkWindow<'a, C: CustomPipe, T> {
     window: &'a winit::window::Window,
-    _clipboard: &'a Clipboard,
+    _clipboard: &'a mut Clipboard,
     shared: &'a mut SharedState<C, T>,
 }
 
 impl<'a, C: CustomPipe, T> TkWindow<'a, C, T> {
     fn new(
         window: &'a winit::window::Window,
-        clipboard: &'a Clipboard,
+        clipboard: &'a mut Clipboard,
         shared: &'a mut SharedState<C, T>,
     ) -> Self {
         TkWindow {
@@ -433,15 +433,23 @@ where
         match self._clipboard.read() {
             Ok(s) => Some(s.into()),
             Err(e) => {
-                warn!("Failed to get clipboard contents: {:?}", e);
+                warn!("Failed to get clipboard contents: {}", e);
                 None
             }
         }
     }
 
-    // TODO: window_clipboard doesn't yet support writing to the clipboard
+    #[cfg(not(feature = "clipboard"))]
     #[inline]
     fn set_clipboard<'c>(&mut self, _content: kas::CowStringL<'c>) {}
+
+    #[cfg(feature = "clipboard")]
+    #[inline]
+    fn set_clipboard<'c>(&mut self, content: kas::CowStringL<'c>) {
+        if let Err(e) = self._clipboard.write(content) {
+            warn!("Failed to write to clipboard: {}", e);
+        }
+    }
 
     fn adjust_theme(&mut self, f: &mut dyn FnMut(&mut dyn ThemeApi) -> ThemeAction) {
         match f(&mut self.shared.theme) {

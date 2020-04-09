@@ -41,3 +41,6 @@ members = ["kas-macros", "kas-theme", "kas-wgpu"]
 
 [package.metadata.docs.rs]
 features = ["nightly", "stack_dst", "winit"]
+
+[patch.crates-io]
+window_clipboard = { path = "../../window/window_clipboard" }
