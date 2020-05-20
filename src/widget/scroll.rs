@@ -40,8 +40,9 @@ pub struct ScrollRegion<W: Widget> {
     horiz_bar: ScrollBar<kas::Right>,
     #[widget]
     vert_bar: ScrollBar<kas::Down>,
+    /// The inner widget
     #[widget]
-    inner: W,
+    pub inner: W,
 }
 
 impl<W: Widget> ScrollRegion<W> {
@@ -91,12 +92,14 @@ impl<W: Widget> ScrollRegion<W> {
     }
 
     /// Access inner widget directly
+    #[deprecated(since = "0.4.2", note = "use `inner` field directly")]
     #[inline]
     pub fn inner(&self) -> &W {
         &self.inner
     }
 
     /// Access inner widget directly
+    #[deprecated(since = "0.4.2", note = "use `inner` field directly")]
     #[inline]
     pub fn inner_mut(&mut self) -> &mut W {
         &mut self.inner

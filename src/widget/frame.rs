@@ -17,8 +17,9 @@ use kas::prelude::*;
 pub struct Frame<W: Widget> {
     #[widget_core]
     core: CoreData,
+    /// The inner widget
     #[widget]
-    child: W,
+    pub inner: W,
     m0: Size,
     m1: Size,
 }
@@ -26,10 +27,10 @@ pub struct Frame<W: Widget> {
 impl<W: Widget> Frame<W> {
     /// Construct a frame
     #[inline]
-    pub fn new(child: W) -> Self {
+    pub fn new(inner: W) -> Self {
         Frame {
             core: Default::default(),
-            child,
+            inner,
             m0: Size::ZERO,
             m1: Size::ZERO,
         }
@@ -42,8 +43,8 @@ impl<W: Widget> Layout for Frame<W> {
         let margins = Margins::ZERO;
         let frame_rules = SizeRules::extract_fixed(axis.is_vertical(), size + size, margins);
 
-        let child_rules = self.child.size_rules(size_handle, axis);
-        let m = child_rules.margins();
+        let inner_rules = self.inner.size_rules(size_handle, axis);
+        let m = inner_rules.margins();
 
         if axis.is_horizontal() {
             self.m0.0 = size.0 + m.0 as u32;
@@ -53,14 +54,14 @@ impl<W: Widget> Layout for Frame<W> {
             self.m1.1 = size.1 + m.1 as u32;
         }
 
-        child_rules.surrounded_by(frame_rules, true)
+        inner_rules.surrounded_by(frame_rules, true)
     }
 
     fn set_rect(&mut self, mut rect: Rect, align: AlignHints) {
         self.core.rect = rect;
         rect.pos += self.m0;
         rect.size -= self.m0 + self.m1;
-        self.child.set_rect(rect, align);
+        self.inner.set_rect(rect, align);
     }
 
     #[inline]
@@ -68,42 +69,42 @@ impl<W: Widget> Layout for Frame<W> {
         if !self.rect().contains(coord) {
             return None;
         }
-        self.child.find_id(coord).or(Some(self.id()))
+        self.inner.find_id(coord).or(Some(self.id()))
     }
 
     fn draw(&self, draw_handle: &mut dyn DrawHandle, mgr: &event::ManagerState, disabled: bool) {
         draw_handle.outer_frame(self.core_data().rect);
         let disabled = disabled || self.is_disabled();
-        self.child.draw(draw_handle, mgr, disabled);
+        self.inner.draw(draw_handle, mgr, disabled);
     }
 }
 
 impl<W: HasBool + Widget> HasBool for Frame<W> {
     fn get_bool(&self) -> bool {
-        self.child.get_bool()
+        self.inner.get_bool()
     }
 
     fn set_bool(&mut self, state: bool) -> TkAction {
-        self.child.set_bool(state)
+        self.inner.set_bool(state)
     }
 }
 
 impl<W: HasText + Widget> HasText for Frame<W> {
     fn get_text(&self) -> &str {
-        self.child.get_text()
+        self.inner.get_text()
     }
 
     fn set_cow_string(&mut self, text: CowString) -> TkAction {
-        self.child.set_cow_string(text)
+        self.inner.set_cow_string(text)
     }
 }
 
 impl<W: Editable + Widget> Editable for Frame<W> {
     fn is_editable(&self) -> bool {
-        self.child.is_editable()
+        self.inner.is_editable()
     }
 
     fn set_editable(&mut self, editable: bool) {
-        self.child.set_editable(editable);
+        self.inner.set_editable(editable);
     }
 }

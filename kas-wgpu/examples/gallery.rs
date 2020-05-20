@@ -147,7 +147,7 @@ fn main() -> Result<(), kas_wgpu::Error> {
                             mgr.adjust_theme(|theme| theme.set_colours(name));
                         }
                         Menu::Disabled(state) => {
-                            *mgr += self.gallery.inner_mut().set_disabled(state);
+                            *mgr += self.gallery.inner.set_disabled(state);
                         }
                         Menu::Quit => {
                             *mgr += TkAction::CloseAll;

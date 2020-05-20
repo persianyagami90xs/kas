@@ -61,7 +61,7 @@
 //! #[derive(Clone, Debug, Widget)]
 //! struct WrapperWidget<W: Widget> {
 //!     #[widget_core] core: CoreData,
-//!     #[widget] child: W,
+//!     #[widget] inner: W,
 //! }
 //! ```
 //!
@@ -208,7 +208,7 @@
 //!     #[widget_core]
 //!     core: CoreData,
 //!     #[widget]
-//!     child: W,
+//!     inner: W,
 //! }
 //! ```
 //!
