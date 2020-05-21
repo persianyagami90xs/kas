@@ -15,7 +15,7 @@ use kas::prelude::*;
 /// Scroll bars allow user-input of a value between 0 and a defined maximum,
 /// and allow the size of the handle to be specified.
 #[handler(send=noauto, msg = u32)]
-#[derive(Clone, Debug, Default, Widget)]
+#[derive(Clone, Debug, Widget)]
 pub struct ScrollBar<D: Directional> {
     #[widget_core]
     core: CoreData,
@@ -28,6 +28,12 @@ pub struct ScrollBar<D: Directional> {
     value: u32,
     #[widget]
     handle: DragHandle,
+}
+
+impl<D: Directional + Default> Default for ScrollBar<D> {
+    fn default() -> Self {
+        ScrollBar::new()
+    }
 }
 
 impl<D: Directional + Default> ScrollBar<D> {
