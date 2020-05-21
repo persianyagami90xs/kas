@@ -60,7 +60,7 @@ impl<W: Widget> Layout for Frame<W> {
     fn set_rect(&mut self, mut rect: Rect, align: AlignHints) {
         self.core.rect = rect;
         rect.pos += self.m0;
-        rect.size -= self.m0 + self.m1;
+        rect.size = rect.size.saturating_sub(self.m0 + self.m1);
         self.inner.set_rect(rect, align);
     }
 

@@ -166,6 +166,15 @@ impl Size {
     pub fn transpose(self) -> Self {
         Size(self.1, self.0)
     }
+
+    /// Subtract another size, saturating to zero
+    #[inline]
+    pub fn saturating_sub(self, other: Self) -> Self {
+        Size(
+            self.0.saturating_sub(other.0),
+            self.1.saturating_sub(other.1),
+        )
+    }
 }
 
 impl From<(u32, u32)> for Size {
