@@ -126,6 +126,7 @@ impl<F: Fn(&str) -> Option<M>, M> EditGuard for EditEdit<F, M> {
 pub struct EditBox<G: 'static> {
     #[widget_core]
     core: CoreData,
+    ideal_height: u32,
     frame_offset: Coord,
     frame_size: Size,
     text_rect: Rect,
@@ -166,14 +167,13 @@ impl<G: 'static> Layout for EditBox<G> {
         };
         let content_rules = size_handle.text_bound(&self.text, class, axis);
         let m = content_rules.margins();
-
         let rules = content_rules.surrounded_by(frame_rules, true);
+
         if axis.is_horizontal() {
-            self.core.rect.size.0 = rules.ideal_size();
             self.frame_offset.0 = frame_offset.0 as i32 + m.0 as i32;
             self.frame_size.0 = frame_size.0 + (m.0 + m.1) as u32;
         } else {
-            self.core.rect.size.1 = rules.ideal_size();
+            self.ideal_height = rules.ideal_size();
             self.frame_offset.1 = frame_offset.1 as i32 + m.0 as i32;
             self.frame_size.1 = frame_size.1 + (m.0 + m.1) as u32;
         }
@@ -187,7 +187,7 @@ impl<G: 'static> Layout for EditBox<G> {
             Align::Centre
         };
         let rect = align
-            .complete(Align::Stretch, valign, self.rect().size)
+            .complete(Align::Stretch, valign, Size(0, self.ideal_height))
             .apply(rect);
 
         self.core.rect = rect;
@@ -221,6 +221,7 @@ impl EditBox<EditVoid> {
     pub fn new<S: Into<String>>(text: S) -> Self {
         EditBox {
             core: Default::default(),
+            ideal_height: 0,
             frame_offset: Default::default(),
             frame_size: Default::default(),
             text_rect: Default::default(),
@@ -244,6 +245,7 @@ impl EditBox<EditVoid> {
     pub fn with_guard<G: EditGuard>(self, guard: G) -> EditBox<G> {
         let mut edit = EditBox {
             core: self.core,
+            ideal_height: self.ideal_height,
             frame_offset: self.frame_offset,
             frame_size: self.frame_size,
             text_rect: self.text_rect,

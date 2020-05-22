@@ -16,7 +16,7 @@
 //! TODO: complete description.
 
 use kas::prelude::*;
-use kas::widget::{Column, Frame, Label, ScrollRegion};
+use kas::widget::{Column, Label, ScrollRegion};
 
 /// Messages returned from a view
 ///
@@ -45,13 +45,14 @@ pub enum ListViewMsg {
 /// This should be initialised with [`ListView::refresh`]. Before this method
 /// is called, the view will appear empty. It is recommended to call `refresh`
 /// before the UI starts (or before widget is added to the UI).
-#[layout(single)]
 #[derive(Clone, Debug, Widget)]
 pub struct ListView {
     #[widget_core]
     core: CoreData,
     #[widget]
-    w: Frame<ScrollRegion<Column<Label>>>,
+    w: ScrollRegion<Column<Label>>,
+    frame_offset: Coord,
+    frame_size: Size,
 }
 
 impl Default for ListView {
@@ -70,7 +71,9 @@ impl ListView {
         let scroll_region = ScrollRegion::default().with_auto_bars(true);
         ListView {
             core: Default::default(),
-            w: Frame::new(scroll_region),
+            w: scroll_region,
+            frame_offset: Default::default(),
+            frame_size: Default::default(),
         }
     }
 
@@ -81,7 +84,7 @@ impl ListView {
     /// method. The view will appear empty until first refresh.
     #[inline]
     pub fn refresh(&mut self) -> (TkAction, ListViewMsg) {
-        (self.w.inner.inner.clear(), ListViewMsg::DataRange)
+        (self.w.inner.clear(), ListViewMsg::DataRange)
     }
 }
 
@@ -92,13 +95,61 @@ impl ListView {
     /// Provide the data range (number of rows)
     #[inline]
     pub fn data_range(&mut self, len: usize) -> ListViewMsg {
-        self.w.inner.inner.reserve(len);
+        self.w.inner.reserve(len);
         ListViewMsg::DataRows(0, len)
     }
 
     /// Provide a single data row
     pub fn data_row<T: Into<CowString>>(&mut self, _index: usize, row: T) -> TkAction {
         // TODO: allow rows to be provided in any order
-        self.w.inner.inner.push(Label::new(row.into()))
+        self.w.inner.push(Label::new(row.into()))
+    }
+}
+
+impl Layout for ListView {
+    fn size_rules(&mut self, size_handle: &mut dyn SizeHandle, axis: AxisInfo) -> SizeRules {
+        let frame_sides = size_handle.edit_surround();
+        let inner = size_handle.inner_margin();
+        let frame_offset = frame_sides.0 + inner;
+        let frame_size = frame_offset + frame_sides.1 + inner;
+
+        let margins = size_handle.outer_margins();
+        let frame_rules = SizeRules::extract_fixed(axis.is_vertical(), frame_size, margins);
+        let content_rules = self.w.size_rules(size_handle, axis);
+
+        let m = content_rules.margins();
+        if axis.is_horizontal() {
+            self.frame_offset.0 = frame_offset.0 as i32 + m.0 as i32;
+            self.frame_size.0 = frame_size.0 + (m.0 + m.1) as u32;
+        } else {
+            self.frame_offset.1 = frame_offset.1 as i32 + m.0 as i32;
+            self.frame_size.1 = frame_size.1 + (m.0 + m.1) as u32;
+        }
+
+        content_rules.surrounded_by(frame_rules, true)
+    }
+
+    fn set_rect(&mut self, rect: Rect, _: AlignHints) {
+        self.core.rect = rect;
+        let rect = Rect {
+            pos: rect.pos + self.frame_offset,
+            size: rect.size.saturating_sub(self.frame_size),
+        };
+        self.w.set_rect(rect, AlignHints::NONE);
+    }
+
+    fn find_id(&self, coord: Coord) -> Option<WidgetId> {
+        if !self.rect().contains(coord) {
+            return None;
+        }
+        if let Some(id) = self.w.find_id(coord) {
+            return Some(id);
+        }
+        Some(self.id())
+    }
+
+    fn draw(&self, draw_handle: &mut dyn DrawHandle, mgr: &event::ManagerState, disabled: bool) {
+        draw_handle.edit_box(self.core.rect, self.input_state(mgr, disabled));
+        self.w.draw(draw_handle, mgr, disabled);
     }
 }
