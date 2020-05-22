@@ -65,8 +65,11 @@ impl Dimensions {
             font_scale,
             scale_factor,
             line_height,
-            min_line_length: line_height * 8,
-            max_line_length: line_height * 24,
+            // We appear to average about 2 characters per line_height
+            // TODO: better to specify in terms of font's 'n' size?
+            // TODO: rename max_line_length to ideal_line_length
+            min_line_length: line_height * 6,
+            max_line_length: line_height * 15,
             margin,
             frame,
             button_frame: (params.button_frame * scale_factor).round() as u32,
