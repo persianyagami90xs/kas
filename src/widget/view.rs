@@ -5,6 +5,8 @@
 
 //! View widgets
 //!
+//! **Work in progress:** this module is under construction and not stable.
+//!
 //! View widgets allow separation of data and the view of that data.
 //! There is some similarity to Model-View-Controller (MVC) design patterns,
 //! but also some differences: the View widget handles (low level) user input,

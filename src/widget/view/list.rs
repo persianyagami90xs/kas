@@ -5,7 +5,7 @@
 
 //! ListView widget
 //! 
-//! Rough implementation plan:
+//! Rough implementation plan (see `data-views.md`):
 //! 
 //! 1.  Add a `ListView` widget based on `ScrollRegion<Column<Label>>`.
 //!     Build the whole view on configure and refresh.
