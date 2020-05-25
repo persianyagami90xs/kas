@@ -22,6 +22,9 @@ nightly = []
 # This flag does not change the API, only built documentation.
 internal_doc = []
 
+# Enables view model widgets (unfinished)
+view = []
+
 [dependencies]
 conv = "0.3"
 log = "0.4"
