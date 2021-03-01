@@ -46,7 +46,7 @@ mod view_widget;
 
 pub use data_traits::{ListData, ListDataMut, SingleData, SingleDataMut};
 pub use filter::{Filter, FilteredList, SimpleCaseInsensitiveFilter};
-pub use shared_data::{SharedConst, SharedRc};
+pub use shared_data::SharedRc;
 pub use view_list::{ListMsg, ListView, SelectionMode};
 pub use view_single::SingleView;
 pub use view_widget::{CheckBoxView, RadioBoxBareView, RadioBoxView, SliderView};
